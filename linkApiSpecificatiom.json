@@ -1,0 +1,677 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "0.0.0",
+        "title": "LPP Api Specification v2",
+        "description": "The Link service can be utilized through a web API to create Links in a Project programmatically from your own code.Link supports RESTful APIs using JSON over HTTP. In addition, client wrappers are provided for Ruby and Java to simplify implementation in those languages.\n",
+        "termsOfService": "https://users.linkcreationstudio.com/termsofuse"
+    },
+    "host": "www.livepaperapi.com",
+    "schemes": [
+        "https"
+    ],
+    
+    "consumes": [
+        "application/x-www-form-urlencoded"
+    ],
+    "produces": [
+        "application/json"
+    ],
+    "paths": {
+        "/auth/v2/token": {
+            "post": {
+			     "tags": [
+                    "Token Resources"
+                ],
+                "description": "Creates a new token for access.",
+                "operationId": "createToken",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "in": "header",
+                        "description": "Content Type",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "grant",
+                        "in": "body",
+                        "description": "create new token for authorization.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/param"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "token response",
+                        "schema": {
+                            "$ref": "#/definitions/accessToken"
+                        }
+                    },
+					"401": {
+                        "description": "(Unauthorized) If the authentication fails."
+                    },
+					"404": {
+                        "description": "( Not found) If the account doesn’t exists.."
+                    },
+					"403": {
+                        "description": "(Forbidden) If user not belong to this account."
+                    },
+					"500": {
+                        "description": "(Service unavailable) Server unable to process current request."
+                    }
+                    
+                }
+            }
+        },
+		"/auth/v2/accounts/{account_id}": {
+            "get": {
+                "tags": [
+                    "Account Resources"
+                ],
+                "description": "Get existing Account details from Account ID",
+                "operationId": "getAccount",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "account_id",
+                        "in": "path",
+                        "description": "accountId for account",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ok.Request is processed successfully."
+                    },
+                    "401": {
+                        "description": "(Unauthorized) If the authentication fails."
+                    },
+					"404": {
+                        "description": "( Not found) If the account doesn’t exists.."
+                    },
+					"403": {
+                        "description": "(Forbidden) If user not belong to this account."
+                    },
+					"500": {
+                        "description": "(Service unavailable) Server unable to process current request."
+                    }
+                }
+            }
+        },
+		"/auth/v2/users/{user_id}": {
+            "get": {
+                "tags": [
+                    "User Resources"
+                ],
+                "description": "Get existing User details from User ID",
+                "operationId": "getUser",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "description": "accountId for account",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "in": "header",
+                        "description": "Content Type",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "accept format",
+                        "required": false,
+                        "type": "string",
+                        "format": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ok.Request is processed successfully."
+                    },
+                    "401": {
+                        "description": "(Unauthorized) If the authentication fails."
+                    },
+					"404": {
+                        "description": "( Not found) If the account doesn’t exists.."
+                    },
+					"403": {
+                        "description": "(Forbidden) If user not belong to this account."
+                    },
+					"500": {
+                        "description": "(Service unavailable) Server unable to process current request."
+                    }
+                }
+            }
+        },
+		"/api/v2/projects": {
+            "get": {
+			    "tags": [
+                    "Project Resources"
+                ],
+                "description": "Returns all projects from the system that the user has access to",
+                "operationId": "listrojects",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "project response",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/project"
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/errorModel"
+                        }
+                    }
+                }
+            },
+            "post": {
+			     "tags": [
+                    "Project Resources"
+                ],
+                "description": "For existing accounts, a project is created for you, and all of your pre-existing resources (Links, Triggers, Payoffs, etc.) will be available under this project",
+                "operationId": "createProject",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "body",
+                        "description": "project to add to the existing accounts",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/newproject"
+                        }
+                    },
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "in": "header",
+                        "description": "Content Type",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "project response",
+                        "schema": {
+                            "$ref": "#/definitions/project"
+                        }
+                    },
+                    "default": {
+                        "description": "unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/errorModel"
+                        }
+                    }
+                }
+            }
+        },
+		"/api/v2/projects/{project-id}": {
+            "get": {
+			    "tags": [
+                    "Project Resources"
+                ],
+                "description": "Returns a user based on a single ID.",
+                "operationId": "getProject",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "project-id",
+                        "in": "path",
+                        "description": "ID of project to fetch",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ok.Request is processed successfully."
+                    },
+                    "401": {
+                        "description": "(Unauthorized) If the authentication fails."
+                    },
+                    "default": {
+                        "description": "unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/errorModel"
+                        }
+                    }
+                }
+            },
+            "put": {
+			    "tags": [
+                    "Project Resources"
+                ],
+                "description": "update a single project based on the ID supplied",
+                "operationId": "deleteproject",
+                "parameters": [
+                    {
+                        "name": "project-id",
+                        "in": "path",
+                        "description": "ID of project to update",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "project",
+                        "in": "body",
+                        "description": "project to add to the existing accounts",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/newproject"
+                        }
+                    },
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "in": "header",
+                        "description": "Content Type",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ok.Request is processed successfully."
+                    },
+                    "401": {
+                        "description": "(Unauthorized) If the authentication fails."
+                    },
+                    "default": {
+                        "description": "unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/errorModel"
+                        }
+                    }
+                }
+            }
+        },
+		"/v2/projects/{project_id}/batches": {
+            "post": {
+                "tags": [
+                    "Batch Resources"
+                ],
+                "description": "Asynchronous API for creating batch.",
+                "operationId": "getAccount",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "path",
+                        "description": "projectid for batches",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "in": "header",
+                        "description": "Content Type",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "format of response",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "X-Async",
+                        "in": "header",
+                        "description": "If User passes X-Async Header than API will give Task API response",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "batch",
+                        "in": "body",
+                        "description": "Body For URL Type",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/newBatch"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "(Accepted) Request to create resource submitted",
+                        "schema": {
+                            "$ref": "#/definitions/batches"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+					"401": {
+                        "description": "(Unauthorized) If the authentication fails."
+                    },
+					"404": {
+                        "description": "( Not found) If the account doesn’t exists.."
+                    },
+					"403": {
+                        "description": "(Forbidden) If user not belong to this account."
+                    },
+					"503": {
+                        "description": "(Service unavailable) If there is a temporary failure in fulfilling the request.Client can retry based on the Retry-After header value.If no Retry-After is given, the client SHOULD handle the response as it would for a 500 response."
+                    }
+                }
+            }
+        }
+		
+		
+		
+		
+		
+    },
+    "definitions": {
+        "accessToken": {
+            "type": "object",
+            "required": [
+                "serviceName",
+                "apiVersion"
+            ],
+            "properties": {
+                "serviceName": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "apiVersion": {
+                    "type": "string"
+                },
+                "accessToken": {
+                    "type": "string"
+                },
+                "scope": {
+                    "type": "string"
+                }
+            }
+        },
+        "param": {
+            "type": "object",
+            "required": [
+                "grant_type"
+            ],
+            "properties": {
+                "scope": {
+                    "type": "string"
+                },
+                "grant_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "errorModel": {
+            "type": "object",
+            "required": [
+                "httpCode",
+                "errorCode"
+            ],
+            "properties": {
+                "serviceName": {
+                    "type": "string"
+                },
+                "apiVersion": {
+                    "type": "string"
+                },
+                "requestId": {
+                    "type": "string"
+                },
+                "httpCode": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "errorDescription": {
+                    "type": "string"
+                },
+                "errorCode": {
+                    "type": "string"
+                }
+            }
+        },
+		"project": {
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "dateCreated": {
+                    "type": "string"
+                },
+                "dateModified": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "rel": {
+                    "type": "string"
+                },
+                "href": {
+                    "type": "string"
+                },
+                "accountId": {
+                    "type": "string"
+                },
+                "createdBy": {
+                    "type": "string"
+                }
+            }
+        },
+        "newproject": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+		"batches": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+				"datecreated": {
+                    "type": "string"
+                },
+				"count": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "array",
+					"items": {
+					  "$ref" : "#/definitions/link"
+					}
+					
+                }
+				
+            }
+        },
+		"link": {
+		    "type": "object",
+			"properties": {
+			    "rel": {
+				   "type": "string"
+			},
+			    "href": {
+				    "type": "string"
+				}
+		
+		
+		
+		}
+		},
+        "newBatch": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "batch": {
+                    "schema": {
+                            "$ref": "#/definitions/batch"
+                        }
+                }
+                
+                
+				
+            }
+        },
+		"batch": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "count": {
+                    "type": "string"
+                },
+                "payoff": {
+                    "type": "object",
+					"properties": {
+					    "name": {
+						    "type": "string"
+						},
+						"type": {
+						    "type": "string"
+						},
+						"url": {
+						   "type": "string"
+						}
+					}
+                }
+				
+            }
+        }
+		
+    }
+}

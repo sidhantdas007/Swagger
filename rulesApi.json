@@ -1,0 +1,327 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "0.0.0",
+        "title": "LPP REST API Specification - v3",
+        "description": "Rules resource defines the set of rules for a Project. When a Project Resource is created,  there is no rules attached by default.User can use a PUT on the project resource to create a set of rules.Rules Resource does not have a id. (We can change the behavior for v3 APIs where we can have reference to rule ids)User can update the Rules resource with PUT\n",
+        "termsOfService": "https://users.linkcreationstudio.com/termsofuse"
+    },
+    "host": "www.livepaperapi.com",
+    "schemes": [
+        "https"
+    ],
+    "basePath": "/api",
+    "consumes": [
+        "application/json"
+    ],
+    "produces": [
+        "application/json"
+    ],
+    "paths": {
+        "/v3/projects/{project_id}/rules": {
+            "put": {
+                "tags": [
+                    "Rules Resource"
+                ],
+                "description": "Rules resource defines the set of rules for a Project.",
+                "operationId": "updaterules",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "path",
+                        "description": "projectid for rules",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "in": "header",
+                        "description": "Content Type",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "format of response",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "rules",
+                        "in": "body",
+                        "description": "Update Rules API allows to modify an existing rule set.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/newRules"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "(Accepted) Request to create resource submitted",
+                        "schema": {
+                            "$ref": "#/definitions/rulesresponce"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+					"401": {
+                        "description": "(Unauthorized) If the authentication fails."
+                    },
+					"404": {
+                        "description": "( Not found) If the account doesn’t exists.."
+                    },
+					"403": {
+                        "description": "(Forbidden) If user not belong to this account."
+                    },
+					"503": {
+                        "description": "(Service unavailable) If there is a temporary failure in fulfilling the request.Client can retry based on the Retry-After header value.If no Retry-After is given, the client SHOULD handle the response as it would for a 500 response."
+                    }
+                }
+            },
+			"get": {
+                "tags": [
+                    "Rules Resource"
+                ],
+                "description": "Rules resource defines the set of rules for a Project.",
+                "operationId": "updaterules",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "path",
+                        "description": "projectid for rules",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "access token key",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "in": "header",
+                        "description": "Content Type",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "format of response",
+                        "required": true,
+                        "type": "string",
+                        "format": "string"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "(Accepted) Request to create resource submitted",
+                        "schema": {
+                            "$ref": "#/definitions/rulesresponce"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+					"401": {
+                        "description": "(Unauthorized) If the authentication fails."
+                    },
+					"404": {
+                        "description": "( Not found) If the account doesn’t exists.."
+                    },
+					"403": {
+                        "description": "(Forbidden) If user not belong to this account."
+                    },
+					"503": {
+                        "description": "(Service unavailable) If there is a temporary failure in fulfilling the request.Client can retry based on the Retry-After header value.If no Retry-After is given, the client SHOULD handle the response as it would for a 500 response."
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "rulesresponce": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "projectId": {
+                    "type": "string"
+                },
+                "ruleId": {
+                    "type": "string"
+                },
+				"dateCreated": {
+                    "type": "string"
+                },
+				"dateModified": {
+                    "type": "string"
+                },
+				
+				"countryAllowed": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                },
+                "countryDenied": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                },
+                "publicScanExceedsCountAlert": {
+                    "type": "string"
+                },
+				"privateScanExceedsCountAlert": {
+                    "type": "string"
+                },
+				"scanInactiveAlert": {
+                    "type": "string"
+                },
+				"publicScanExceedsCountWarning": {
+                    "type": "string"
+                },
+				"privateScanExceedsCountWarning": {
+                    "type": "string"
+                },
+				"scanInactiveNone": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "array",
+					"items": {
+					  "$ref" : "#/definitions/link"
+					}
+					
+                }
+				
+            }
+        },
+		"link": {
+		    "type": "object",
+			"properties": {
+			    "rel": {
+				   "type": "string"
+			},
+			    "href": {
+				    "type": "string"
+				}
+		
+		
+		
+		}
+		},
+        "newRules": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "rules": {
+                    "schema": {
+                            "$ref": "#/definitions/rules"
+                        }
+                }
+                
+                
+				
+            }
+        },
+		"rules": {
+            "type": "object",
+            "required": [
+                "countryAllowed"
+            ],
+            "properties": {
+                "countryAllowed": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                },
+                "countryDenied": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                },
+                "publicScanExceedsCountAlert": {
+                    "type": "string"
+                },
+                "privateScanExceedsCountAlert": {
+                    "type": "string"
+                },
+                "scanInactiveAlert": {
+                    "type": "string"
+                },
+                "publicScanExceedsCountWarning": {
+                    "type": "string"
+                },
+                "privateScanExceedsCountWarning": {
+                    "type": "string"
+                },
+                "scanInactiveWarning": {
+                    "type": "string"
+                },
+                "scanInactiveNone": {
+                    "type": "string"
+                }
+                
+                
+            }
+        },
+        "errorModel": {
+            "type": "object",
+            "required": [
+                "httpCode",
+                "errorCode"
+            ],
+            "properties": {
+                "serviceName": {
+                    "type": "string"
+                },
+                "apiVersion": {
+                    "type": "string"
+                },
+                "requestId": {
+                    "type": "string"
+                },
+                "httpCode": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "errorDescription": {
+                    "type": "string"
+                },
+                "errorCode": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
