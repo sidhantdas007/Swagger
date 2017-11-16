@@ -1,0 +1,4673 @@
+openapi: 3.0.0
+servers:
+  - url: 'https://virtserver.swaggerhub.com/IPGPTP/Serialization/1.0.0'
+  - url: https://api.example.com/v1
+    description: Production server (uses live data)
+  - url: https://sandbox-api.example.com:8443/v1
+    description: Sandbox server (uses test data)
+hosts:
+   - scheme: http
+     host: foo.com
+     port: 8080
+     basePath: /bar
+   - scheme: https
+     host: foo.com
+     port: 8443
+     basePath: /baz
+
+info:
+  title: Link v3 API
+  version: "1.0.0"
+  description: >
+    
+     # API Overview 
+     
+      Link supports RESTful APIs. APIs follows [Oauth 2.0](https://tools.ietf.org/html/rfc6749) standards for Authentication and Authorization. Responses are in JSON unless otherwise noted.
+      ## Steps for using APIs
+      1. Sign in or create an account with [Link](https://stegasis.linkcreationstudio.com/home)
+      2. Obtain your user credentials, Link Supports *Oauth 2.0 client credentials* grant type for API Authentication and Authorization.
+      3. Obtain an access token using your credentials [Link](https://stegasis.linkcreationstudio.com/credentials).
+      4. Use access token to access APIs.
+      # API Objects
+      
+     ## Account, User and Project
+     
+     ![](https://s3-us-west-1.amazonaws.com/lpp-v3-api-doc/images/Link_auth.png "")
+     
+     ## User
+     
+     A user resource gets created when a user signs up into the Link Portal. This object holds the information about the user and the credentials to access the APIs.
+      ## Account
+     An account resource is created at the time of sign-up. Using the accounts API, you can retrieve details about your account. You will be able to get data about your quota (limits) for creating triggers. You will also be able to get data about usage across different trigger types (Watermark, QR code, and others) 
+      ## Project
+      A Project is an resource in an account. The Project is a container for other resource like Triggers, Batches etc. The Project is also the resource shared during collaborations, when you invite other Users to become members of a Project, they get access to the resources within that Project.
+      
+     
+      ## Membership
+      A User can be invited to Project as a member with a specific role. Membership resource holds the mapping between a User and project and details about the role. A Role defines the access control that users have on the Project.
+      
+      ## Link Resources 
+      ![](https://s3-us-west-1.amazonaws.com/lpp-v3-api-doc/images/Link_trigger_hierarchy.png)
+      ## Trigger
+     A Trigger resource defines the unique ID that is embedded into a physical Mark and the metadata associated.
+     
+     
+      ## Batch
+     A Batch resource is used for bulk allocation/creation of Triggers.
+      ## Payoff
+     Defines the experience/behavior, when a trigger is scanned by a user. The Payoff can be defined for a Trigger, Batch or a Project. A payoff defined at the trigger level will override the payoffs defined at a higher level (Batch, Project). It is recommended to define Payoff at Project level if you want the same payoff for all the triggers created within a project. 
+      ## Rules
+      A rule consists of a condition and a set of actions that are executed when the condition is met. Rules are defined at the project level.  <br/>
+        Examples : <br/>
+       Report an incident when no of consumer scans for a trigger is greater than x.  <br/>
+        Mark a Trigger as invalid, if the Trigger is scanned from a country outside Europe. 
+        
+      ## Events & Properties
+      
+      ![](https://s3-us-west-1.amazonaws.com/lpp-v3-api-doc/images/Events+%26+Properties.png "")
+      ## Properties
+      Properties are metadata defined as key-value pairs. Properties can be associated with a Trigger, Batch or a Project.
+      ## Events
+      
+      Events happened for a trigger. Events are captured by API calls or by interactions like scanning. Events will have information such as when, why, where what etc.    
+      
+  termsOfService: 'https://users.linkcreationstudio.com/termsofuse'
+security:
+  - Bearer: []
+paths:
+  /api/v3/token:
+    post:
+      tags:
+        - 'Authentication '
+      summary: Create an Access Token
+      
+      description: >
+        The Authentication API enables generation and validation of
+        authentication access tokens to access other Link APIs. You will need a
+        valid access token to make all other API calls.
+
+
+        <b>Each access token that you create is valid for 1 hour. Use of an
+        expired token will result in the error response ACCESS_TOKEN_EXPIRED. To
+        be safe, monitor the token lifespan or obtain a new token as needed. </b>
+      servers:
+      - url: https://files.example.com
+      operationId: createToken
+      parameters:
+        - name: Authorization
+          in: header
+          description: >-
+            The basic auth token that is generated from link portal.<br>The
+            token should be of format <div>Basic *[base64 encoded
+            clientID:secret]*</div>
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/accessToken'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+            error:
+              examples:
+                response:
+                  value:
+                    - requestId: 28dec8fd-0da2-4065-9f73-3c56d92c01a1
+                      httpCode: 401
+                      errorDescription: Invalid authorization header
+                      errorCode: 1000
+        '403':
+          description: If grant type is not supported for the user.
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+            
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/param'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/param'
+        description: Oauth grant type and scope. The Scope is optional.
+        required: true
+  '/api/v3/users/{user_id}':
+    get:
+      tags:
+        - 'User '
+      summary: Gets User Resource
+      description: Gets User resource.
+      operationId: createUser
+      servers:
+      - url: https://files.example.com
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: user_id
+          in: path
+          description: Identifier for the user. It is same as the Oauth clientId.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/userResponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+  '/api/v3/accounts/{account_id}':
+    get:
+      tags:
+        - 'Account '
+      summary: Gets Account Resource
+      operationId: getAccount
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/accountsobject'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+  '/api/v3/accounts/{account_id}/quota':
+    get:
+      tags:
+        - 'Account '
+      summary: Gets Quota for Account
+      description: Gets Quota for Account
+      operationId: getQuota
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/quota'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+  /api/v3/projects:
+    post:
+      tags:
+        - Project
+      summary: Creates Project
+      description: >-
+        A Project is an entity in an account. The Project is a container for other
+        objects like Triggers, Batches, payoffs etc. The Project is also the object
+        shared during collaborations when you invite other Users to become
+        members of a Project, they get access to the resources within that
+        Project.
+      operationId: createProject
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/projectResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+            error:
+              examples:
+                response:
+                  value:
+                    errorDescription: Project name is invalid
+                    errorCode: 1014
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+      requestBody:
+        $ref: '#/components/requestBodies/newproject'
+    get:
+      tags:
+        - Project
+      summary: List Projects
+      description: >-
+        List of projects that user has an access to. The result is a paginated
+        list.
+      operationId: listrojects
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: offset
+          in: query
+          description: Pagination offset.Starting porition of the list.
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: >-
+            Pagination limit. Number of items to be returned in response from
+            start position. The default is 1000.
+          required: false
+          schema:
+            type: string
+        - name: name
+          in: query
+          description: >-
+            The project name.If supplied only the projects with matching name
+            would be returned.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/projects'
+          examples:
+            projects:
+              projects:
+                [ 
+                     { 
+                      id: jSKjxRarRGeRRlj_9hSL7A,
+                      name: MyNewProject,
+                      description: This is the description of linkcreationstudio,
+                      brand: hp,
+                      accountId: 056vwtsy03zkexce9rjxwii65hmbb84p,
+                      payoffId: 056vwtsy03zkexce9rjxwii65hmbb84p,
+                      dateCreated: 2014-04-08T08:16:25.723+0000,
+                      dateModified: 2014-04-08T08:16:25.723+0000,
+                      createdBy: abc@hp.com,
+                      validationInfo: {
+                        productUrl: https://mylinks.linkcreationstudio.com,
+                        reportFraudUrl: https://www.google.com,
+                        anonymousUserSeesValidation: false,
+                        
+                      },   
+                      link: 
+                       [ 
+                         { 
+                          rel: self,
+                          href: https://www.livepaperapi.com/api/v3/project/zZLsnjy
+                         }
+                      
+                      ]
+                      },
+                      { 
+                      id: 9hSL7A_jSKjxRarRGeRRlj,
+                      name: MyNewProjec2t,
+                      description: This is the description of linkcreationstudio,
+                      brand: hp,
+                      accountId: 056vwtsy03zkexce9rjxwii65hmbb84p,
+                      payoffId: 234erft03zkexce9rjxwii65hmbb84p,
+                      dateCreated: 2014-04-08T08:16:25.723+0000,
+                      dateModified: 2014-04-08T08:16:25.723+0000,
+                      createdBy: abc@hp.com,
+                      validationInfo: {
+                        productUrl: https://mylinks.linkcreationstudio.com,
+                        reportFraudUrl: https://www.google.com,
+                        anonymousUserSeesValidation: false,
+                        
+                      },   
+                      link: 
+                       [ 
+                         { 
+                          rel: self,
+                          href: https://www.livepaperapi.com/api/v3/project/zZLsnjy
+                         }
+                      
+                      ]
+                      }
+                      
+                  ] 
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+  '/api/v3/projects/{project_id}':
+    get:
+      tags:
+        - Project
+      summary: Get Project Resource
+      description: Returns a project resource.
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: project_id
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+            format: string
+
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/projectResponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+    put:
+      tags:
+        - Project
+      summary: Update Project
+      description: Update a single project based on the ID supplied
+      operationId: updateproject
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: project_id
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/projectResponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+      requestBody:
+        $ref: '#/components/requestBodies/newproject'
+  '/api/v3/projects/{project_id}/memberships':
+    post:
+      tags:
+        - Memberships
+      summary: Invite User to a Project
+      description: >-
+        Inviting user to project with a specific role.</br>
+          *Supported Roles* </br>
+          - admin
+          - viewer
+      operationId: addMembership
+      parameters:
+        - name: project_id
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: application/json
+          required: false
+          schema:
+            type: string
+            format: string
+        - name: Content-Type
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: 'Created, User successfully invited.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/membershipResponse'
+        '400':
+          description: 'Bad Request, Invalid input.'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, Inviting user doesn''t have access to the project.'
+        '404':
+          description: 'Not Found, Resource not found.'
+        '409':
+          description: >-
+            Conflict, User is already member of this project with <role value>
+            role. Use Update API to change the role.
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newMembership'
+        description: Request body for inviting the user to project with the role.
+        required: true
+    get:
+      tags:
+        - Memberships
+      summary: List Project Memberships
+      description: Lists memberships for a project.
+      operationId: listProjectMembership
+      parameters:
+        - name: Authorization
+          in: header
+          description: access token key
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: project_id
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Accept
+          in: header
+          description: application/json
+          required: false
+          schema:
+            type: string
+            format: string
+        - name: expand
+          in: query
+          description: >-
+            Passing this query parameter(expand=true) includes complete details
+            of the project in the response.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/membershipsWithoutParam'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to this resource.'
+        '404':
+          description: 'Not Found, Resource Not Found.'
+        '503':
+          description: 'Service Unavailable, Unable to process request. Try later.'
+  '/api/v3/memberships/{membership_id}':
+    get:
+      tags:
+        - Memberships
+      summary: Gets Membership
+      description: Retrieve Membership resource identified by the ID.
+      operationId: getMembership
+      parameters:
+        - name: membership_id
+          in: path
+          description: Membership ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: application/json
+          required: false
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/membershipResponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to resource.'
+        '404':
+          description: 'Not Found, Resource Not Found.'
+        '503':
+          description: 'Service Unavailable, Unable to process request. Try later.'
+    put:
+      tags:
+        - Memberships
+      summary: Updates Membership.
+      description: <b>Updates Membership</b> </br> Updates user role in a project.
+      operationId: updateMembership
+      parameters:
+        - name: membership_id
+          in: path
+          description: Membership ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: application/json
+          required: false
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/membershipResponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to resource.'
+        '404':
+          description: Not Found.
+        '503':
+          description: 'Service Unavailable, Unable to process request. Try later.'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateMembership'
+        description: Request body for updating user role.
+        required: true
+    delete:
+      tags:
+        - Memberships
+      summary: Deletes Memebership
+      description: <b>Deletes Membership</b></br>Removes user's accessfrom a project.
+      operationId: deleteMembership
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+      responses:
+        '204':
+          description: No Content. Operation successful
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to this resource.'
+        '404':
+          description: 'Not Found, Resource Not Found.'
+        '409':
+          description: 'Conflict, Atleast one Admin should be present.'
+        '503':
+          description: 'Service Unavailable, Unable to process request. Try later.'
+  /api/v3/memberships:
+    get:
+      tags:
+        - Memberships
+      summary: List User Memberships
+      description: <b>List Memberships</b></br> Lists all memberships for the user. 
+      operationId: listMembership
+      parameters:
+        - name: Authorization
+          in: header
+          description: access token key
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Accept
+          in: header
+          description: application/json
+          required: false
+          schema:
+            type: string
+            format: string
+        - name: expand
+          in: query
+          description: >-
+            Passing this query parameter(expand=true) includes complete details
+            of the project in the response.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/membershipsWithoutParam'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to this resource.'
+        '404':
+          description: 'Not Found, Resource Not Found.'
+        '503':
+          description: 'Service Unavailable, Unable to process request. Try later.'
+  '/api/v3/projects/{project_id}/rules':
+    put:
+      tags:
+        - Rules
+      summary: Associate rules to a Project.
+      description: >-
+        Associates rules to a project. Each rule consists of a condition and a
+        set of actions. Actions are executed if the Condition is met. A condition is defined by specifying a expression with a fact and a set of operators. A fact could be a metrics from the system or a  property which has a meaning in the given context.</br>
+        <br> **Examples :** <br/>
+          Report an incident when no of consumer scans for a trigger is greater than x.  <br/>
+        Mark a Trigger as invalid, if the Trigger is scanned from a country outside Europe. </br> </br>
+          **Supported facts in condition :** </br>
+          - allowed_countries
+          - denied_countries
+          - private_scan_count
+          - public_scan_count
+          - trigger_property.{property-name}(property name is dynamic. Can use any property key associated with trigger)</br> </br>
+          
+          **Supported operators in condition :** </br>
+          - equals
+          - not_equals
+          - in (Checks if the value is one of the values provided)
+          - not_in (Used with multiple values)
+          - in_order ( Used when we need to verify transitions of a fact in a specific sequence.)
+          - not_in_order ( Used when we need to verify transitions of a fact in a specific sequence.) 
+          - less_than
+          - greater_than
+          
+          </br>
+          
+          **Supported Condition types :** </br>
+          - all (Works like AND operator. All the conditions in this array should satisfy).
+          - any (Works like OR operator. any of the conditions in this array should satisfy).
+          
+          <br></br> </br>
+          **Supported severity levels :** </br>
+          - Error
+          - Warning
+          
+         </br>
+          
+          **ISO ALPHA-2 of countries** </br>
+          - https://en.wikipedia.org/wiki/ISO_3166-1#Officially_assigned_code_elements
+          
+        <br></br></br>
+          **Points to keep in mind** </br>
+          - allowed_countries and denied_countries rules are not allowed together for a project.
+          - Not all operators are supported with facts. Choose appropriate operator for a fact.
+      operationId: updaterules
+      parameters:
+        - name: project_id
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/newRules'
+        '400':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/BadRequest
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newRules'
+        description: |
+          create rules request.
+        required: true
+    get:
+      tags:
+        - Rules
+      summary: Get Rules
+      description: Get the rules associated with the project.
+      operationId: getRules
+      parameters:
+        - name: project_id
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: (OK) Request processed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/newRules'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+  '/api/v3/project/{project_id}/triggers':
+    post:
+      tags:
+        - Trigger
+      summary: Creates Trigger
+      description: >-
+         The Trigger represents the unique ID that is embedded in a physical image or object.  Trigger type indicates the technology used for embedding ID on a physical object. An image or a physical object that bears the ID  can be scanned using a Link Reader application that detects the ID and fetches the digital experience for the user. To define a digital experience for a trigger, one must specify a Payoff. See Payoff APIs for more details.
+          </br></br>
+          **Supported trigger types** </br>
+          - qrCode
+          - secureQrCode
+          - secureQrCodeGuilloche
+          - qrCodeGuilloche
+          - shortUrl
+          - watermark 
+          - gtinWatermark 
+      operationId: createTrigger
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - $ref: '#/components/parameters/contentParam'
+        - $ref: '#/components/parameters/acceptTypeJson'
+        - name: project_id
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '201':
+          description: Ok.Trigger is created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/triggerResponse'
+        '400':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/BadRequest
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/triggerRequest'
+        description: >
+          Create Trigger request.</br></br> 
+            <table>
+              <tr>
+                <th><b>Parameter Name</b></th>
+                <th><b>Description</b></th>
+              </tr>
+               <tr>
+                <td>name*</td>
+                 <td>Human readable name for the Trigger  </td>
+              </tr>
+              <tr>
+                <td>triggerType*</td>
+                <td>mandatory, supported types are mentioned above </td>
+              </tr>
+              <tr>
+                <td>payoffId</td>
+                 <td> The ID of the payoff that needs to be attached to the trigger.Payoff is optional, If the experience is defined at a higher level ( project or batch) payoff is notneed not be specified.  Payoff defined at the trigger level will override the ones defined at higher levels. </td>
+              </tr>
+              <tr>
+                <td>payoffExperience</td>
+                 <td>  This is an optional field, Use it if you want to control the Trigger resolve experience. Supported values are on and off. By default, it is on </td>
+              </tr>
+              
+            </table>
+
+        required: true
+    get:
+      tags:
+        - Trigger
+      summary: List Triggers
+      description: >-
+        Get the List of triggers in the specified project. Result set will be
+        paginated.
+      operationId: listTrigger
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - $ref: '#/components/parameters/contentParam'
+        - $ref: '#/components/parameters/acceptTypeJson'
+        - name: id
+          in: query
+          description: trigger ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/triggerList'
+          examples:
+            TriggerListExample:
+              triggers:
+                [
+                  trigger:
+                  {
+                    id: http://d.hpar.co/bxbu67,
+                    name: Trigger name,
+                    triggerType: qrCode,
+                    dateCreated: 2014-10-08T20:40:26.401+0000,
+                    dateModified: 2014-10-08T20:40:26.401+0000,
+                    projectId: GY8fjYH2RhS_TkzYYN1hNw,
+                    payoffId: emqL3g6tGalo4ko9c,
+                    payoffExperience: on,
+                    renewalDate: 2016-11-01T00:00:00.000+000,
+                    links: [
+                            {
+                                        rel: project,
+                                        href: https://www.livepaperapi.com/api/v3/projects/GY8fjYH2RhS_TkzYYN1hNw
+                                      },
+                                      {
+                                        rel: self,
+                                        href: https://www.livepaperapi.com/api/v3/triggers?id=http://d.hpar.co/bxbu67
+                                      }
+                          ]
+                    },
+                    trigger:
+                  {
+                    id: http://d.hpar.co/xbxu76,
+                    name: Trigger name,
+                    triggerType: qrCode,
+                    dateCreated: 2014-10-08T20:40:26.401+0000,
+                    dateModified: 2014-10-08T20:40:26.401+0000,
+                    projectId: TkzYYN1hNw_GY8fjYH2RhS,
+                    payoffId: alo4ko9cemqL3g6tG,
+                    payoffExperience: on,
+                    renewalDate: 2016-11-01T00:00:00.000+000,
+                    links: [
+                            {
+                                        rel: project,
+                                        href: https://www.livepaperapi.com/api/v3/projects/TkzYYN1hNw_GY8fjYH2RhS
+                                      },
+                                      {
+                                        rel: self,
+                                        href: https://www.livepaperapi.com/api/v3/triggers?id=http://d.hpar.co/xbxu76
+                                      }
+                          ]
+                    },
+                    
+                  ]
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+  /api/v3/triggers?id={trigger_id}:
+    get:
+      tags:
+        - Trigger
+      summary: Get Trigger
+      description: Returns trigger resource.
+      operationId: getTrigger
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - $ref: '#/components/parameters/contentParam'
+        - $ref: '#/components/parameters/acceptTypeJson'
+        - name: id
+          in: query
+          description: trigger ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/triggerResponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+    patch:
+      tags:
+        - Trigger
+      summary: Update Trigger
+      description: >-
+        The Update Trigger API allows modification of an existing Trigger
+        resource attributes. 
+        Following properties can be updated
+        
+          - name
+          - payoffExperience
+          - payoffId
+      operationId: updateTrigger
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - $ref: '#/components/parameters/contentParam'
+        - $ref: '#/components/parameters/acceptTypeJson'
+        - name: id
+          in: query
+          description: trigger ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/triggerResponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/triggerPutRequest'
+        required: true
+  
+  '/api/v3/triggers/reassign':
+    post:
+      tags:
+        - Trigger
+      summary: Move triggers
+      description: >-
+         Move triggers from one project to another project. This API works in asynchronous mode. After submitting request, this API will return task URL in location header . Use this URL to get the status of the job.
+            This API accepts trigger id and target Batch in CSV or JSON format.Only items which passes validation criteria will be moved to target project otherwise that item will be marked as failed.</br></br>
+            <b>Validation Criterea</b></br>
+            <li>User Should have admin access in both source and target projects</li>
+            <li>Both source and target project belongs to same account.</li>
+            <li>Both source and target batches should be of same mark type.</li>
+            <li>This API doesn't support reassigning 'watermark' & 'sgtin-watermark' type triggers</li></br></br>
+            <b>Task Status</b> </br>
+            <b>Completed :-</b> All the input items are processed successfully.</br>
+            <b>Partial :-</b> Processing failed for some of the items . Task API will redirect to S3 URL(CSV/JSON file containing failed items).</br><b>Error :-</b> Task failed due to error.</br><b>Processing :-</b> Task is being processed.</br></br>
+            <b>Failed report format (Following will be column names in CSV and properties in JSON.</b></br>
+              triggerId,targetBatchId,targetProjectId,status,errorCode,errorDescription'
+      operationId: reassignuids
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - $ref: '#/components/parameters/contentParam'
+        - $ref: '#/components/parameters/acceptTypeJson'
+        
+      responses:
+        '202':
+          description: Accepted. Job Accepted . Use the Task URL provided in the location header to get the status of this job.
+          headers:
+            HTTP/1.1 202:
+              description: HTTP response
+              type: string
+            Content-Type:
+              description: Content Type
+              type: string
+            Location:
+              description:  Contains task endpoint.Example :-  https:///www.livepaperapi.com/api/v2/tasks/9ynVrwbeQPaR60Mr81HC9g
+              type: string
+        '400':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/BadRequest
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/reassign'
+        description: >
+          Supports both JSON and CSV input .
+             CSV file should be UTF-8 encoded and expected to be in below defined format.</br></br> <b>CSV Format</b></br>
+              triggerId,targetBatchId</br></br>
+              <b>JSON Format</b>
+
+        required: true
+  '/api/v3/projects/{project_id}/batches':
+    post:
+      tags:
+        - Batch
+      summary: Creates Batch
+      description: >-
+        Create a set of triggers. Creation happens asynchronously, client will
+        be provided with a location HTTP header representing the task URL, if
+        the request is successfully initiated. The client can use the task resource
+        to monitor the asynchronous job. Task status will be pending after
+        the request is registered. Client has to update the task status to
+        "submitted" to start processing.</br>
+
+          </br></br> </br>
+          **Supported trigger types :** </br>
+          - qrCode
+          - secureQrCode
+          - secureQrCodeGuilloche
+          - qrCodeGuilloche
+          - shortUrl
+          - watermark
+          - sgtinWatermark
+      operationId: createBatch
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: project_id
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Accept
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '201':
+          description: 'Created, Returns batch resource.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listBatch'
+       
+        '400':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/BadRequest
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newBatch'
+        description: |
+          Batch request.</br></br> 
+          <table>
+            <tr>
+              <th><b>parameter Name</b></th>
+               <th><b>Description</b></th>
+            </tr>
+            <tr>
+              <td>triggerType*</td>
+               <td>supported types are mentioned above.</td>
+            </tr>
+            <tr>
+              <td>count*</td>
+               <td>trigger count </td>
+            </tr>
+            <tr>
+              <td>gtin</td>
+               <td>required for triggerType "sgtinWatermark". </td>
+            </tr>
+            <tr>
+              <td>startSerialNumber</td>
+               <td>required for triggerType "sgtinWatermark". </td>
+            </tr>
+            <tr>
+              <td>payoffId</td>
+               <td>optional, If specified defines  a common payoff for all the triggers in the Batch.</td>
+            </tr>
+          </table>
+        required: true
+    get:
+      tags:
+        - Batch
+      summary: List Batches
+      description: Get Batches in the project specified in the query parameter.
+      operationId: listBatch
+      parameters:
+        - name: projectId
+          in: query
+          description: Project ID
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          description: offset.
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: limit. A Number of items to be returned in the response. The default is 1000.
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Accept
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: 'OK, Returns all batches in a project.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listBatches'
+        '401':
+          description: 'Unauthorized, If the authentication fails.'
+        '403':
+          description: 'Forbidden, If user doesn''t have access to this resource.'
+        '404':
+          description: 'Not found, If resource doesnt exists.'
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          description: 'Internal Server Error,  Server unable to process current request.'
+  '/api/v3/batches/{batch_id}':
+    get:
+      tags:
+        - Batch
+      summary: Get Batch details
+      description: |
+        <b>GET Batch Details</b> </br> Returns batch resource.</br></br>
+
+        <b>Generation of Images for small jobs </b> </br> Response contains
+        links to generate and download images for small jobs.</br></br>
+        <table>
+          <tr>
+            <th><b>Link Name</b></th>
+             <th><b>Description</b></th>
+          </tr>
+           <tr>
+            <td>download</td>
+             <td>This atom Link will be available only if batch size is
+        less than 1000. Submit a job to generate images using this atom link. It
+        provides task end point from which returns status of job. Once the job
+        is completed downloads images in zip </td>
+          </tr>
+        </table>
+
+      operationId: getBatch
+      parameters:
+        - name: batch_id
+          in: path
+          description: Batch ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Accept
+          in: header
+          description: application/json
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: 'Ok, Returns batch resource.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listBatch'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: Forbidden.  User doesnt have access to resource.
+        '404':
+          description: Not Found.  If resource doesn't exist.
+        '503':
+          description: 'Service Unavailable, Unable to process request. Try later.'
+    patch:
+      tags:
+        - Batch
+      summary: Update Batch
+      description: <b>Update Batch</b></br> Update payoff and name of the batch.
+      operationId: putBatch
+      parameters:
+        - name: batch_id
+          in: path
+          description: Batch ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Accept
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: 'OK, Update Batch Response'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listBatch'
+          examples:
+            batch:
+              batch:
+                id: manjhusksksnsj
+                name: test1
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                count: 10
+                triggerType: watermark
+                payoffId: 1TG6M3xrtyuuifrt
+                status: submitted
+                link: 
+                 [ 
+                   { 
+                    rel: self,
+                    href: https://www.livepaperapi.com/api/v3/batches/manjhusksksnsj
+                    },
+                    {
+                      rel: payoff,
+                      href: https://www.livepaperapi.com/api/v3/payoffs/1TG6M3xrtyuuifrt
+                    },
+                    {
+                      rel: project,
+                      href:  https://www.livepaperapi.com/api/v3/projects/GY8fjYH2RhS_TkzYYN1hNw
+                    },
+                    {
+                      rel: triggerIds,
+                      href: https://storage.livepaperapi.com/api/v3/batches/manjhusksksnsj/triggers/download
+                    },
+                    {
+                      rel: triggerImages,
+                      href:  https://storage.livepaperapi.com/api/v3/batches/manjhusksksnsj/triggerimages/download
+                    },
+                    {
+                      rel: jobFile,
+                      href:  https://storage.livepaperapi.com/api/v3/batches/manjhusksksnsj/jobfile/download
+                    }
+                ]
+        '401':
+          description: 'Unauthorized, If the authentication fails.'
+        '403':
+          description: 'Forbidden, If user doesn''t have access to this resource.'
+        '404':
+          description: 'Not found, If resource doesnt exists.'
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          description: 'Internal Server Error,  Server unable to process current request.'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateBatch'
+        description: Update Batch.
+        required: true
+        
+    delete:
+      tags:
+        - Batch
+      summary: Delete Batch
+      description: <b>Deletes a Batch. Deleting is allowed only if batch is in error/pending state.
+      operationId: deleteBatch
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+      responses:
+        '204':
+          description: No content. Operation successful
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to this resource.'
+        '404':
+          description: 'Not Found, Resource Not Found.'
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+  '/api/v3/batches/{batch_id}/triggerimages/download': 
+    get:
+      tags:
+        - Batch
+      summary: Download Image
+      operationId: getuidImage
+      description: Online marking. Gets watermarked Images
+      parameters:
+        - name: batch_id
+          in: path
+          description: Batch ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: text/csv
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: 'OK, Returns a loaction header to job which when completed gives as link to download image.'
+          headers:
+            HTTP/1.1 202:
+              description: HTTP response
+              type: string
+            Content-Type:
+              description: Content Type
+              type: string
+            Location:
+              description:  Contains imageJob endpoint.Example :-  https:///www.livepaperapi.com/api/v3/imageJob/9ynVrwbeQPaR60Mr81HC9g
+              type: string
+            
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to batch .'
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '404':
+          description: 'Forbidden, Provided batch resource doesn''t exist .'
+          
+            
+            
+  '/api/v3/batches/{batch_id}/triggers/download':
+    get:
+      tags:
+        - Batch
+      summary: Download triggers
+      description: Gets triggerIds associated with the Batch.
+      operationId: getuids
+      parameters:
+        - name: batch_id
+          in: path
+          description: Batch ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: text/csv
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: 'OK, Returns a list of trigger ids in a file.'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to batch .'
+        '404':
+          description: 'Forbidden, Provided batch resource doesn''t exist .'
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+  '/api/v3/batches/{batch_id}/jobfile/download':
+    get:
+      tags:
+        - Batch
+      summary: Download Job File
+      description: >-
+        <b>Download Job File</b> </br> Download text file which contains details
+        required by the on-prem solution.
+      operationId: getJob
+      parameters:
+        - name: batch_id
+          in: path
+          description: Batch ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: text/plain
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: 'OK, retuns text file.'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to batch .'
+        '404':
+          description: 'Forbidden, Provided batch resource doesn''t exist .'
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+  '/api/v3/triggers/bind_payoffs':
+    post:
+      tags:
+        - Batch
+      summary: Bind payoffs to triggers
+      description: | 
+              Binds payoffs to a list of triggers. While specifying payoff either use an existing payoff or create a new payoff for attaching to the trigger. Specify the payoffId, if an existing payoff is used or specify payoff body of a new payoff has to be created and bound to the payoff. 
+              
+              This API works in asynchronous mode. After submitting a request, this API will return task URL in location header. Use this URL to get the status of the job. This API accepts trigger id and,  payoff ID or payoff object in  JSON format.</br></br>
+              <b>Task Status</b> </br>
+              <b>Completed -</b> All the input items are processed successfully.</br>
+              <b>Partial -</b> Processing failed for some of the items. Task API will provide an atom link pointing to the report file that has the details of the failure (JSON file containing failed items with reason).</br>
+              <b>Processing -</b>  If the task is being processed by the system</br></br>
+              <b>Following fields will be provided in the failure report. The report will be in JSON format.</b></br>
+              triggerId,url,status,errorCode,errorDescription
+      
+      operationId: createPersonalizePayoff
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: application/json
+          schema:
+            type: string
+            format: string
+        - name: Accept
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string 
+      responses:
+        '202':
+          description: >-
+            Accepted.
+          headers:
+            HTTP/1.1 202:
+              description: HTTP response
+              schema:
+                type: string
+            Content-Type:
+              description: Content Type
+              schema:
+                type: string
+            Location:
+              description: >-
+                Contains task endpoint.Example :- 
+                 https://domain/api/v3/tasks/<taskid>
+              schema:
+                type: string
+        '400':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/BadRequest
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/personalizePayoff'
+        description: |
+          Bind Payoff request. One must either specify a payoff id(If payoff already exists) or payoff object (If a new payoff has to be created for binding).</br></br>
+          <b>Example with payoffId</b>
+          <table bgcolor='black'>
+            <tr>
+              <pre>
+                <font color='white'>
+                  {
+                  "items": [
+                    {
+                      "triggerId": "http://d.hpar.co/wertg5",
+                      "payoffId": "aswdr456e321fgtgtg"
+                    },
+                    {
+                      "triggerId": "http://d.hpar.co/wertg6",
+                      "payoffId": "aswdr456e321fgtgtg"
+                    }
+                  ]
+                }
+            </tr>
+          </table>
+        required: true
+  '/api/v3/imageJob/{image_job_id}':
+    get:
+      tags:
+        - Batch
+      summary: Gets ImageJob
+      description: >-
+        Get the details for the asynchronous job identified by the image_job_id. A
+        job resource is returned in the 'Location' header of the asynchronous
+        API response. </br></br> </br>
+          **Supported Task States :** </br>
+          - pending - This state is used for asynchronous transactions which need client's acknowledgment for proceeding. System will not pick up the task until client modifies the state to 'submitted'.
+          - submitted - Task is ready to be picked by system.
+          - processing - Task is being processed
+          - completed - Task is completed successfully
+          - Partial - Task is completed with some failures
+          - error - Task failed due to error
+      operationId: getImageJob
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: image_job_id
+          in: path
+          description: ImageJob ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK. Task response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageJobResponse'
+          examples:
+            ImageJobPending:
+              imageJob:
+                id: xksksksnsj
+                status: pending
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                link: 
+                 [ 
+                   { 
+                    rel: self,
+                    href: https://dev.batch.livepaperapi.com/api/v2/Imagejobs/iamgeJobId
+                    }
+                ]
+                
+            ImageJobCompleted:
+              imageJob:
+                id: xksksksnsj
+                status: Partial
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                link: 
+                 [ 
+                   { 
+                    rel: self,
+                    href: https://dev.batch.livepaperapi.com/api/v2/Imagejobs/iamgeJobId
+                    },
+          
+                    {
+                      rel: downlaod Image,
+                      href: https://lpp-dev-storage.s3.amazonaws.com/02MCM2QOSdmWWPKh6hG9Yg
+                    }
+                ]      
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to this resource.'
+        '404':
+          description: 'Not Found, Invalid ImageJob id.'
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+            
+  '/api/v3/tasks/{task_id}':
+    get:
+      tags:
+        - Task
+      summary: Gets Task
+      description: >-
+        Get the details for the asynchronous task identified by the taskId. A
+        task resource is returned in the 'Location' header of the asynchronous
+        API response. </br></br> </br>
+          **Supported Task States :** </br>
+          - pending - This state is used for asynchronous transactions which need client's acknowledgment for proceeding. System will not pick up the task until client modifies the state to 'submitted'.
+          - submitted - Task is ready to be picked by system.
+          - processing - Task is being processed
+          - completed - Task is completed successfully
+          - Partial - Task is completed with some failures
+          - error - Task failed due to error
+      operationId: getTask
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: task_id
+          in: path
+          description: Task ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK. Task response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/taskResponse'
+          examples:
+            Response for Task which is Partially completed:
+              task:
+                id: xksksksnsj
+                status: Partial
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                link: 
+                 [ 
+                   { 
+                    rel: self,
+                    href: https://dev.batch.livepaperapi.com/api/v2/tasks/taskId
+                    },
+                    {
+                      rel: info,
+                      href: https://dev.batch.livepaperapi.com/api/v2/tasks/taskId/info
+                    },
+                    {
+                      rel: error report,
+                      href: https://lpp-dev-storage.s3.amazonaws.com/02MCM2QOSdmWWPKh6hG9Yg.csv
+                    }
+                ]    
+        
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          description: 'Forbidden, User doesn''t have access to this resource.'
+        '404':
+          description: 'Not Found, Invalid task id.'
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+    put:
+      tags:
+        - Task
+      summary: Update Task
+      description: >-
+        Update the status of the asynchronous task. Update is allowed only if the
+        task is in  'pending' state. Client can move the state from 'pending' to
+        'submitted'.
+      operationId: putTask
+      parameters:
+        - name: task_id
+          in: path
+          description: Task ID
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Accept
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: 'OK, Task response'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/taskResponse'
+        '401':
+          description: 'Unauthorized, If the authentication fails.'
+        '403':
+          description: 'Forbidden, If user doesn''t have access to this resource.'
+        '404':
+          description: 'Not found, If resource doesnt exists.'
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          description: 'Internal Server Error,  Server unable to process current request.'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newTask'
+        description: Update task status to submitted.
+        required: true
+        
+  /api/v3/projects/{project-id}/payoffs:
+    post:
+      tags:
+        - Payoff
+      summary: Creates Payoff
+      description: >-
+        Payoff defines the digital experience for the trigger. Payoffs can be mapped to a trigger, batch or a  Project. If you need to define a common experience for a all triggers belonging to a Batch or a Project, define it the respective level. Please refer to Batch and Project APIs for more details.
+        </br></br> </br>
+          **Supported payoff types :** </br>
+          - url (Payoff specifying a URL, Link reader application will direct the user to the URL specified)
+          - richPayoff (richPayoffs allows custom experience for the Link users. Link developer can design a layout with buttons as per the specification defined by Link. It consists of three sections.)
+          - Public (Public payoff contains the URL which can be resolved using any reader.This section must contain a valid URL.The service throws 400 bad request in absence of this parameter.)
+          - Private (Private section can be resolved only using LinkReader or an app that uses the LinkReader SDK).
+          - Version (Version indicates the schema of the rich payoff. Currently, only '1.0' version is supported.) 
+          - customData (customData payoff allows additional information to be specified in payoff as key-value pairs.These can be consumed by the Link Reader or client applications that need more data in payoff for their specific needs.)
+           Request body based on payoff type </br></br>
+           Request body based on payoff type </br>
+          <table bgcolor='black'>
+            <tr>
+              <pre>
+                <font color='white'>
+                  {
+                    "payoff": {
+                      "id": "123",
+                      "name": "my new website",
+                      "type": "richPayoff",
+                      "version": "2",
+                      "richPayoff": {
+                        "version": 1,
+                        "private": {
+                          "data": "Base64 encoded data",
+                          "content-type": "custom-base64"
+                        }
+                      },
+                      "url": "https://www.timesofindia.com"
+                    }
+                  }
+            </tr>
+          </table>
+           <table bgcolor='black'>
+            <tr>
+              <pre>
+                <font color='white'>
+                  {
+                    "payoff": {
+                      "id": "123",
+                      "name": "my new website",
+                      "type": "customData",
+                      "version": "2",
+                      "url": "https://www.timesofindia.com",
+                      "privateData": {
+                        "data": {
+                          "secureURL": "http://www.securelink.com/upload",
+                          "reportURL": "http://www.securelink.com/report"
+                        }
+                      }
+                  }
+                }
+            </tr>
+          </table>
+         
+          
+      operationId: createPayoff
+      requestBody:
+        description: |
+          Request body based on payoff type </br>
+          
+         
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/newpayoff'
+              
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+      responses:
+        '201':
+          description:  Created Payoff created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/payoffResponse'
+          examples:
+            Response for richPayoff:
+              payoff:
+                id: 123
+                name: my new website
+                type: richPayoff
+                version: 2.0
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                dateModified: 2014-04-08T05:13:59.244+0000
+                projectId: gy8FjY
+                link: 
+                 [ 
+                   { 
+                    rel: analytics,
+                    href: www.livepaperapi.com/analytics
+                    },
+                    {
+                      rel: project,
+                      href: www.livepaperapi.com/project
+                    },
+                    {
+                      rel: self,
+                      href:  www.livepaperapi.com/self
+                    }
+                ]
+                richPayoff: {
+                  version: 1.0,
+                  private: {
+                   data: Base64 encoded data,
+                   content-type: custom-base64
+                  }
+                }
+                url: https://www.timesofindia.com 
+                  
+                
+            Response for customData:
+              payoff:
+                id: 123
+                name: my new website
+                type: customData
+                version: 2.0
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                dateModified: 2014-04-08T05:13:59.244+0000
+                projectId: gy8FjY
+                link: 
+                 [ 
+                   { 
+                    rel: analytics,
+                    href: www.livepaperapi.com/analytics
+                    },
+                    {
+                      rel: project,
+                      href: www.livepaperapi.com/project
+                    },
+                    {
+                      rel: self,
+                      href:  www.livepaperapi.com/self
+                    }
+                ]
+                url: https://www.timesofindia.com 
+                privateData: {
+                  data: 
+                  {
+                    secureURL: http://www.securelink.com/upload,
+                    reportURL: http://www.securelink.com/report
+                  }
+                }
+            Response for url:
+              payoff:
+                id: 123
+                name: my new website
+                type: url
+                version: 2.0
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                dateModified: 2014-04-08T05:13:59.244+0000
+                projectId: gy8FjY
+                link: 
+                 [ 
+                   { 
+                    rel: analytics,
+                    href: www.livepaperapi.com/analytics
+                    },
+                    {
+                      rel: project,
+                      href: www.livepaperapi.com/project
+                    },
+                    {
+                      rel: self,
+                      href:  www.livepaperapi.com/self
+                    }
+                ]
+                url: https://www.timesofindia.com 
+                  
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+          examples:
+            example:
+              value:
+                errorDescription: Invalid payoff type
+                errorCode: 1034
+              
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+    
+  /api/v3/payoff/{payoff_id}:        
+    get:
+      tags:
+        - 'Payoff'
+      summary: Get Payoff details
+      description: Get payoff details for a given payoff id.
+      operationId: getPayoff
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          description: application/json
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          description: application/json
+        - name: projectId
+          in: path
+          schema:
+            type: string
+          description: Project ID
+        - name: payoffId
+          in: path
+          schema:
+            type: string
+          description: Payoff ID
+      responses:
+        '200':
+          description: Payoff details are retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/payoffResponse'
+          examples:
+            url:
+              payoff:
+                id: 123
+                name: my new website
+                type: url
+                version: 2.0
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                dateModified: 2014-04-08T05:13:59.244+0000
+                projectId: gy8FjY
+                link: 
+                 [ 
+                   { 
+                    rel: analytics,
+                    href: www.livepaperapi.com/analytics
+                    },
+                    {
+                      rel: project,
+                      href: www.livepaperapi.com/project
+                    },
+                    {
+                      rel: self,
+                      href:  www.livepaperapi.com/self
+                    }
+                ]
+                url: https://www.timesofindia.com 
+                
+            richPayoff:
+              payoff:
+                id: 123
+                name: my new website
+                type: richPayoff
+                version: 2.0
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                dateModified: 2014-04-08T05:13:59.244+0000
+                projectId: gy8FjY
+                link: 
+                 [ 
+                   { 
+                    rel: analytics,
+                    href: www.livepaperapi.com/analytics
+                    },
+                    {
+                      rel: project,
+                      href: www.livepaperapi.com/project
+                    },
+                    {
+                      rel: self,
+                      href:  www.livepaperapi.com/self
+                    }
+                ]
+                richPayoff: {
+                  version: 1.0,
+                  private: {
+                   data: Base64 encoded data,
+                   content-type: custom-base64
+                  }
+                }
+                url: https://www.timesofindia.com 
+                  
+                
+            customData:
+              payoff:
+                id: 123
+                name: my new website
+                type: customData
+                version: 2.0
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                dateModified: 2014-04-08T05:13:59.244+0000
+                projectId: gy8FjY
+                link: 
+                 [ 
+                   { 
+                    rel: analytics,
+                    href: www.livepaperapi.com/analytics
+                    },
+                    {
+                      rel: project,
+                      href: www.livepaperapi.com/project
+                    },
+                    {
+                      rel: self,
+                      href:  www.livepaperapi.com/self
+                    }
+                ]
+                url: https://www.timesofindia.com 
+                privateData: {
+                  data: 
+                  {
+                    secureURL: http://www.securelink.com/upload,
+                    reportURL: http://www.securelink.com/report
+                  }
+                }
+              
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+  
+    put:
+      tags:
+        - 'Payoff'
+      summary: Update payoff
+      description: Update the payoff resource
+      operationId: updatePayoff
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          description: application/json
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          description: application/json
+        - name: projectId
+          in: path
+          schema:
+            type: string
+          description: Project ID
+        - name: payoffId
+          in: path
+          schema:
+            type: string
+          description: Payoff ID
+      requestBody:
+        description: Request body based on payoff type
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/newpayoff'
+      responses:
+        '200':
+          description: Payoff is updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/payoffResponse'
+          examples:
+            url:
+              payoff:
+                id: 123
+                name: my new website
+                type: url
+                version: 2.0
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                dateModified: 2014-04-08T05:13:59.244+0000
+                projectId: gy8FjY
+                links: 
+                 [ 
+                   { 
+                    rel: analytics,
+                    href: www.livepaperapi.com/analytics
+                    },
+                    {
+                      rel: project,
+                      href: www.livepaperapi.com/project
+                    },
+                    {
+                      rel: self,
+                      href:  www.livepaperapi.com/self
+                    }
+                ]
+                url: https://www.timesofindia.com 
+                
+            richPayoff:
+              payoff:
+                id: 123
+                name: my new website
+                type: richPayoff
+                version: 2.0
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                dateModified: 2014-04-08T05:13:59.244+0000
+                projectId: gy8FjY
+                link: 
+                 [ 
+                   { 
+                    rel: analytics,
+                    href: www.livepaperapi.com/analytics
+                    },
+                    {
+                      rel: project,
+                      href: www.livepaperapi.com/project
+                    },
+                    {
+                      rel: self,
+                      href:  www.livepaperapi.com/self
+                    }
+                ]
+                richPayoff: {
+                  version: 1.0,
+                  private: {
+                   data: Base64 encoded data,
+                   content-type: custom-base64
+                  }
+                }
+                url: https://www.timesofindia.com 
+                  
+                
+            customData:
+              payoff:
+                id: 123
+                name: my new website
+                type: customData
+                version: 2.0
+                dateCreated: 2014-04-08T05:13:59.244+0000
+                dateModified: 2014-04-08T05:13:59.244+0000
+                projectId: gy8FjY
+                link: 
+                 [ 
+                   { 
+                    rel: analytics,
+                    href: www.livepaperapi.com/analytics
+                    },
+                    {
+                      rel: project,
+                      href: www.livepaperapi.com/project
+                    },
+                    {
+                      rel: self,
+                      href:  www.livepaperapi.com/self
+                    }
+                ]
+                url: https://www.timesofindia.com 
+                privateData: {
+                  data: 
+                  {
+                    secureURL: http://www.securelink.com/upload,
+                    reportURL: http://www.securelink.com/report
+                  }
+                }
+                  
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+          examples:
+            example:
+              value:
+                errorDescription: Invalid payoff type
+                errorCode: 1034
+              
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '409':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Conflict
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+  
+    delete:
+      tags:
+        - 'Payoff'
+      summary: Delete payoff
+      description: Delete an existing payoff
+      operationId: deletePayoff
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          description: application/json
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          description: application/json
+        - name: projectId
+          in: path
+          schema:
+            type: string
+          description: Project ID
+        - name: payoffId
+          in: path
+          schema:
+            type: string
+          description: Payoff ID
+        - name: force
+          in: query
+          schema:
+            type: boolean
+          description: Deletes the payoff along with its associated resources
+      responses:
+        '200':
+          description: Payoff is successfully deleted (payoff is associated with any links and force=true)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/deletepayoffResponse'
+                
+        '204':
+          description: No content. Payoff is successfully deleted (payoff is not associated with any links)
+        
+        '409':
+          description: Payoff has associated link.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - associatedLinks
+                  - link
+                  - error
+                properties:
+                  associatedLinks:
+                    type: string
+                    example: "2"
+                  link:
+                    type: array
+                    example:
+                      [
+                        {
+                          rel: analyticsLinks,
+                          href: www.livepaperapi.com
+                        }
+                        ]
+                  error:
+                    type: object
+                    required:
+                      - title
+                      - message
+                    properties:
+                      title:
+                        type: string
+                        example: 409 Conflict
+                      message:
+                        type: string
+                        example: The payoff to be deleted has associated links. Please use force=true query parameter in the request.
+                   
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        
+  /api/v3/projects/{project_id}/payoffs:
+    get:
+      tags:
+        - 'Payoff'
+      summary: List payoffs details
+      description: Get the list of payoffs for a given user.
+      operationId: getListPayoffs
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          description: application/json
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          description: application/json
+        - name: projectId
+          in: path
+          schema:
+            type: string
+          description: Project ID
+        - name: offset
+          in: query
+          schema:
+            type: integer
+          description: Offset value, used for pagination. Default value is 1.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: The maximum number of items to be included in the response. The default is 1000.
+      responses:
+        '200':
+          description: Payoff details are retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listpayoffResponse'
+                  
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+          examples:
+            example:
+              value:
+                errorDescription: Invalid payoff type
+                errorCode: 1034
+              
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        
+  /api/v3/properties/set:
+    post:
+      tags:
+        - 'Properties '
+      summary: Set Properties for triggers
+      description: >-
+        Set properties for Triggers, Batch or Project. If the specified property is already present, updates the property value. 
+      operationId: createProperty
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '202':
+          description: Accepted.
+          headers:
+            HTTP/1.1 202:
+              description: HTTP response
+              schema:
+                type: string
+            Content-Type:
+              description: Content Type
+              schema:
+                type: string
+            Location:
+              description: >-
+                Contains task endpoint.Example :- 
+                https:///www.livepaperapi.com/api/v3/tasks/9ynVrwbeQPaR60Mr81HC9g
+              schema:
+                type: string
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+      requestBody:
+        $ref: '#/components/requestBodies/property'
+  '/api/v3/projects/{projectId}/properties':
+    get:
+      tags:
+        - 'Properties '
+      summary: Get Project Properties
+      description: Get properties of a project.
+      operationId: getProjectProperty
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: projectId
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/projectpropertyresponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+  '/api/v3/batches/{batchId}/properties':
+    get:
+      tags:
+        - 'Properties '
+      summary: Get Batch Properties
+      description: >-
+        Get Batch properties.
+      operationId: getBatchProperty
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: batchId
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/batchPropertyresponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+  /api/v3/properties:
+    get:
+      tags:
+        - 'Properties '
+      summary: Get Trigger Properties
+      description: >-
+        Get trigger properties.
+      operationId: getProperty
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: triggerId
+          in: query
+          description: Trigger ID
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: showParentProperties
+          in: query
+          description: If specified all the properties of projects and batch are included
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/triggerPropertyresponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+    delete:
+      tags:
+        - 'Properties '
+      summary: Delete Properties
+      description: Deletes one or more property
+      operationId: deleteProperty
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '202':
+          description: >-
+            Accepted. Job Accepted but processing is not started. Update the
+            status of the task to "submitted" using the API provided in a location
+            header.
+          headers:
+            HTTP/1.1 202:
+              description: HTTP response
+              schema:
+                type: string
+            Content-Type:
+              description: Content Type
+              schema:
+                type: string
+            Location:
+              description: >-
+                Contains task endpoint.Example :- 
+                https:///www.livepaperapi.com/api/v3/tasks/9ynVrwbeQPaR60Mr81HC9g
+              schema:
+                type: string
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+      requestBody:
+        $ref: '#/components/requestBodies/property'
+  /api/v3/search/triggers:
+    get:
+      tags:
+        - 'Properties '
+      summary: Search Triggers
+      description: >
+        Search uid's within a Batch or within a Project having specific
+        property.This API allows queries against the set of
+        properties.<br><b>How To Build A Query</b></br><br>Construct the query
+        string by separating query parameters with '&' operator and pass the
+        string as a value to this query parameter 'q'.<p>Example
+        q="projectId=zvQra&triggerId=hsjsuYIDODN"</p></br><br><b>Supported
+        Attributes:</b><br> <br> 
+         <style>table, th, td {border: 1px solid black;border-collapse: collapse;}th, td {padding: 5px;}</style><table style="width:50%"><tr><th>Param Name</th><th>Description </th></tr><tr><td>projectId*|mandatory</td><td>project Id is manadatory</td></tr><tr><td>batchId|optional</td><td>Batch ID</td></tr><tr><td>propertykey|optional</td><td>Property Key</td></tr><tr><td>propertyValue|optional</td><td>Property Value</td> </tr></table>
+        
+       
+
+        
+      operationId: getProperties
+      parameters:
+        - name: Authorization
+          in: header
+          description: access token key
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: q
+          in: query
+          description: Query String
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: offset
+          in: query
+          description: offset.
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: limit. A number of items to be returned in the response. The default is 1000.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/triggerList'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+  /api/v3/events/create:
+    post:
+      tags:
+        - 'Events '
+      summary: Create Events
+      description: >
+        Capture events for a set of Triggers. This API works in asynchronous
+        mode. After submitting a request, this API will return task URL in
+        location header. Use this URL to get the status of the job.
+
+        <br>
+
+
+        <b><u>Task Status</b> </br>
+            <b>Completed :-</b> All the input events are processed successfully.</br>
+            <b>Partial :-</b> Processing failed for some of the events. Task API will redirect to S3 URL(CSV/JSON file containing failed events).</br></br>
+        <b>Failed report format (Following will be column names in CSV and
+        properties in JSON.</b></br>
+            eventtype,bizstep,location
+        <br/><b>Event Types</b><br/><br/>
+
+        <table border = "3">
+
+        <tr>
+          <th>Event Type</th>
+          <th>Description</th>
+        </tr>
+
+        <tr>
+          <td>Property</td>
+          <td>This event type denotes a change in trigger property</td>
+        </tr>
+
+        <tr>
+          <td>Resolve</td>
+          <td>This event is captured by system when there is a scan by a consumer or by a SecretShopper that result in a call to LPP resolver service</td>
+        </tr>
+
+        <tr>
+          <td>Aggregation</td>
+          <td> Events indicating that triggers are added/removed from a parent. </td>
+        </tr>
+
+        </table>
+
+
+        <br/><b>Event Attributes</b><br/><br/>
+
+        <table border = "3">
+
+        <tr>
+          <th>Event Attribute</th>
+          <th>Description</th>
+        </tr>
+
+        <tr>
+          <td>triggerID</td>
+          <td>The triggerID for which event is generated.There can be one or more than one triggerID associated with an event</td>
+        </tr>
+
+        <tr>
+          <td>parentID</td>
+          <td>The parent trigger with which triggerID are associated.This is a mandatory attribute for Aggregation event type.</td>
+        </tr>
+
+        <tr>
+          <td>eventType</td>
+          <td>Supported event types as dexcrived above</td>
+        </tr>
+
+        <tr>
+          <td>eventTime</td>
+          <td> The time when event occurred. </td>
+        </tr>
+
+        <tr>
+          <td>bizStep</td>
+          <td> The business step that denotes what caused this event. </td>
+        </tr>
+
+        <tr>
+          <td>propertyKey</td>
+          <td> Property key name for a property event . </td>
+        </tr>
+
+        <tr>
+          <td>propertyValue</td>
+          <td> Property value for a property event. </td>
+        </tr>
+
+        </table>
+      operationId: createEvents
+      parameters:
+        - $ref: '#/components/parameters/authorizationParam'
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+      responses:
+        '202':
+          description: >-
+            Accepted. Job Accepted but processing is not started. Update the
+            status of the task to “submitted” using the API provided in a location
+            header.
+          headers:
+            HTTP/1.1 202:
+              description: HTTP response
+              schema:
+                type: string
+            Content-Type:
+              description: Content Type
+              schema:
+                type: string
+            Location:
+              description: >-
+                Contains task endpoint.Example :- 
+                https:///www.livepaperapi.com/api/v3/tasks/9ynVrwbeQPaR60Mr81HC9g
+              schema:
+                type: string
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/event'
+        description: event  payload in
+        required: true
+  /api/v3/search/events:
+    get:
+      tags:
+        - 'Events '
+      summary: Get Events
+      description: >
+        This API allows queries against the set of events.<br><br><b>How To
+        Build A Query</b></br>Construct the query string by separating query
+        parameters with '&' operator and pass the string as a value to this
+        query parameter 'q'. <br/><br/><p>Examples - <br/></p>
+
+        <p>Get all the triggers where triggerId is 'hsjsuYIDODN'</p>
+
+        <p>q="triggerId=hsjsuYIDODN"</p>
+
+        </br>
+
+        <p>Get all the triggers where triggerId is 'hsjsuYIDODN' and event type 
+        = 'PropertyChange'</p>
+
+        <p>q="triggerId=hsjsuYIDODN&eventType=PropertyChange"</p>
+
+        </br><br>
+
+        <p>Get all the triggers where triggerId is 'hsjsuYIDODN', event type is
+        'PropertyChange' and eventTime is '2017-04-15T07:11:28.314Z'</p>
+
+        <p>q="triggerId=hsjsuYIDODN&eventType=PropertyChange&eventTime &gt;=
+        "2017-04-15T07:11:2" and eventTime &lt;= "2017-04-15T07:11:2"</p>
+
+        </br><br>
+
+        <p>Get all the triggers where triggerId is 'hsjsuYIDODN', event type is
+        'Aggregation' and propertyValue is 'recieved' </p>
+
+        <p>q="triggerId=hsjsuYIDODN&eventType=Aggregation&propertyValue=recieved</p>
+
+        </br><br>
+
+
+        <b>Supported Attributes</b><br> 
+        
+        <style>table, th, td {border: 1px solid black;border-collapse: collapse;}th, td {    padding: 5px;}</style><table style="width:50%">  <tr>  <th>Param Name</th>    <th>Description </th>   </tr>  <tr>    <td>triggerID*|mandatory</td>    <td>TriggerID is manadatory</td>  </tr>  <tr>    <td>eventType|optiona</td>    <td>type of event</td>  </tr>  <tr>    <td>propertyKey|optional</td>    <td>Property Key</td>  </tr>  <tr>    <td>propertyValue|optional</td>    <td>Property Value must be used with property Key.</td>  </tr>   <tr>    <td>eventTime|optional</td>    <td>Time of the event</td>  </tr>   <tr>    <td>bizStep|optional</td>    <td>business step involved </td>  </tr>   <tr>    <td>location|optional</td>    <td>location</td>  </tr></table>
+
+        
+      operationId: getEvents
+      parameters:
+        - name: Authorization
+          in: header
+          description: access token key
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: Content-Type
+          in: header
+          description: Content Type
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: q
+          in: query
+          description: Query String
+          required: true
+          schema:
+            type: string
+            format: string
+        - name: offset
+          in: query
+          description: offset.
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: limit. A number of items to be returned in response. The default is 1000.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ok.Request is processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/eventResponse'
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+        
+        
+  /api/v3/events/invalidate:
+    post:
+      tags:
+        - 'Events '
+      summary: Invalidate Events
+      description: >
+        This API allows User to invalidate the Events
+      operationId: deleteEvent 
+      parameters:
+         - $ref: '#/components/parameters/authorizationParam'
+         - name: Content-Type
+           in: header
+           description: Content Type
+           required: true
+           schema:
+             type: string
+             format: string
+      responses:
+        '204':
+          description: No content. Payoff is successfully deleted (payoff is not associated with any links)
+        '401':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Unauthorized
+        '403':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/Forbidden
+        '404':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/NotFound
+          
+        '503':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/ServiceUnavailable
+        '500':
+          $ref: >-
+            https://api.swaggerhub.com/domains/IPGPTP/LPPCommon/1.0.0#/responses/InternalServerError
+            
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/item'
+        description: requested Events to be invalidated
+        required: true   
+  
+components:
+  schemas:
+    personalizePayoff:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/personalizePayoffResponse'
+          example:
+          - triggerId : http://d.hpar.co/wertg5
+            'payoff': {
+              'name': 'test Payoff',
+              'type': 'url',
+              'url': 'http://www.google.com'
+            }
+          - triggerId :  http://d.hpar.co/wertg6
+            'payoff': {
+              'name': 'test Payoff',
+              'type': 'url',
+              'url': 'http://www.facebook.com'
+            }
+    personalizePayoffResponse:
+      type: object       
+      properties:
+        triggerId:
+          type: string
+        payoff:
+          $ref: '#/components/schemas/newpayoffdef'
+        
+    event:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/events'
+          example:
+            - triggers:
+                - BA-8yfl7Qgexf3qRVkJ4og
+                - aa-DnBKdS_6DxMj-1Bm1_w
+              type: 'property,'
+              eventTime: '2017-04-15T07:11:28.314Z'
+              bizstep: shipping
+              properties:
+                - name: color
+                  value: Blue
+                - name: ISBN
+                  value: XYZ123
+              location: '37.412563:-122.148200'
+            - triggers:
+                - AA-492FcSS-bpzZ6d8Jgjg
+                - ba-AZXUMQw-aqmhU2m1pEQ
+              parentID: BA-8yfl7Qgexf3qRVkJ4og
+              type: 'aggregation'
+              eventTime: '2017-04-15T07:11:28.314Z'
+              location: '37.412563:-122.148200'
+    eventResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/events'
+          example:
+            - type: 'property,'
+              eventTime: '2017-04-15T07:11:28.314Z'
+              recordTime: '2017-04-15T07:11:28.314Z'
+              bizstep: shipping
+              properties:
+                - name: color
+                  value: Blue
+                - name: ISBN
+                  value: XYZ123
+              location: '37.412563:-122.148200'
+            - parentID: AA-492FcSS-bpzZ6d8Jgjg
+              type: 'aggregation'
+              eventTime: '2017-04-15T07:11:28.314Z'
+              recordTime: '2017-04-15T07:11:28.314Z'
+              location: '37.412563:-122.148200'
+    item:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/items'
+          example:
+            - triggerId: BA-8yfl7Qgexf3qRVkJ4og,
+              propertyKey: 8yfl7Qgexf3qRVkJ4og-Qge
+              propertyValue: Qgexf3qRVkJ4og&jyhj
+            - triggerId: BA-8yfl7Qgexf3qRVkJ4og,
+              propertyKey: 8yfl7Qgexf3qRVkJ4og-Qge
+              propertyValue: Wsexf3Wyun-sog&jyhj
+    items:
+      type: object
+      properties:
+        triggerId:
+          type: string
+          example: BA-8yfl7Qgexf3qRVkJ4og
+        propertyKey:
+          type: string
+          example: 8yfl7Qgexf3qRVkJ4og-Qge
+        propertyValue:
+          type: string
+          example: 5Sfy7Qgexf3qRVkJ4og-Qge  
+    events:
+      type: object
+      properties:
+        triggers:
+          type: array
+          example:
+            - id1
+            - id2
+        type:
+          type: string
+          example: abc
+        eventTime:
+          type: string
+          example: '2014-06-02T15:37:07.000+0531'
+        bizstep:
+          type: string
+          example: abc
+        properties:
+          type: string
+          items:
+            $ref: '#/components/schemas/eventproperties'
+        propertyValue:
+          type: string
+          example: abc
+        action:
+          type: string
+          example: fg
+        bizState:
+          type: string
+          example: stateName
+        location:
+          type: string
+          example: '37.412563:-122.148200'
+    newRules:
+      type: object
+      required:
+        - rules
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/rules'
+    rules:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Private Scan count
+        description:
+          type: string
+          example: Make trigger invalid if private scans are more than 10
+        condition:
+          type: object
+          properties:
+            all:
+              type: array
+              items:
+                $ref: '#/components/schemas/allConditions'
+              example:
+                - fact: private_scan_count
+                  operator: greater_than
+                  value:
+                    - 10
+                - fact: allowed_countries
+                  operator: in
+                  value:
+                    - US
+                    - SE
+                - fact: 'trigger_property.{state}'
+                  operator: equals
+                  value:
+                    - active
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/action'
+    allConditions:
+      type: object
+      properties:
+        fact:
+          type: string
+        operator:
+          type: string
+        value:
+          type: array
+    action:
+      type: object
+      properties:
+        action:
+          type: string
+          example: record
+        severity:
+          type: string
+          example: error
+    newMembership:
+      type: object
+      required:
+        - membership
+      properties:
+        membership:
+          $ref: '#/components/schemas/membership'
+    updateMembership:
+      type: object
+      properties:
+        membership:
+          $ref: '#/components/schemas/updatemembership'
+    updatemembership:
+      type: object
+      properties:
+        role:
+          type: string
+          example: admin
+    membership:
+      type: object
+      required:
+        - email
+        - role
+      properties:
+        email:
+          type: string
+          example: user@gmail.com
+        role:
+          type: string
+          example: admin
+    membershipsWithoutParam:
+      type: object
+      properties:
+        memberships:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: fPxJixU6RIKIy_lw3bbA9g
+              dateCreated:
+                type: string
+                example: '2017-06-05T11:42:23.000+0000'
+              dateModified:
+                type: string
+                example: '2017-06-05T11:42:23.000+0000'
+              role:
+                type: string
+                example: admin
+              project:
+                $ref: '#/components/schemas/projectDetails'
+              invitedBy:
+                $ref: '#/components/schemas/invitedBy'
+              user:
+                $ref: '#/components/schemas/userDetails'
+              links:
+                type: array
+                items:
+                  $ref: '#/components/schemas/projectlink'
+                example:
+                  - rel: self
+                    href: >-
+                      https://www.livepaperapi.com/api/v3/memberships/fPxJixU6RIKIy_lw3bbA9g
+                  - rel: project
+                    href: 'https://www.livepaperapi.com/api/v3/projects/xx'
+    membershipResponse:
+      type: object
+      required:
+        - membership
+      properties:
+        membership:
+          type: object
+          properties:
+            id:
+              type: string
+              example: fPxJixU6RIKIy_lw3bbA9g
+            dateCreated:
+              type: string
+              example: '2017-06-05T11:42:23.000+0000'
+            dateModified:
+              type: string
+              example: '2017-08-09T11:42:23.000+0000'  
+            role:
+              type: string
+              example: admin
+            project:
+              $ref: '#/components/schemas/projectDetails'
+            user:
+              $ref: '#/components/schemas/userDetails'
+            invitedBy:
+              $ref: '#/components/schemas/invitedBy'
+            links:
+              type: array
+              items:
+                $ref: '#/components/schemas/projectlink'
+              example:
+                - rel: self
+                  href: >-
+                    https://www.livepaperapi.com/api/v3/memberships/fPxJixU6RIKIy_lw3bbA9g
+                - rel: project
+                  href: 'https://www.livepaperapi.com/api/v3/projects/xx'
+    userDetails:
+      type: object
+      properties:
+        email:
+          type: string
+          example: user@gmail.com
+        firstName:
+          type: string
+          example: jhon
+        lastName:
+          type: string
+          example: taylor
+    invitedBy:
+      type: object
+      properties:
+        email:
+          type: string
+          example: admin@gmail.com
+        firstName:
+          type: string
+          example: Matt
+        lastName:
+          type: string
+          example: taylor
+    projectDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          example: xx
+        name:
+          type: string
+          example: demo project
+    taskResponseObject:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: xksksksnsj
+        status:
+          type: string
+          example: submitted
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/tasklink'
+    taskResponse:
+      type: object
+      required:
+        - task
+      properties:
+        task:
+          $ref: '#/components/schemas/taskResponseObject'
+    ImageJobResponse:
+      type: object
+      required:
+        - ImageJob
+      properties:
+        ImageJob:
+          $ref: '#/components/schemas/taskResponseObject'      
+    newTask:
+      type: object
+      properties:
+        task:
+          $ref: '#/components/schemas/task'
+    tasklink:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        rel:
+          type: string
+          example: self
+        href:
+          type: string
+          example: 'https://batch.livepaperapi.com/api/v3/tasks/xksksksnsj     '
+    task:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: submitted
+    newBatch:
+      type: object
+      required:
+        - batch
+      properties:
+        batch:
+          $ref: '#/components/schemas/batch'
+    batch:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: Batch for test
+        projectId:
+          type: string
+          example: 1TG6M3
+        triggerType:
+          type: string
+          example: watermark
+        count:
+          type: string
+          example: 10
+        payoffId:
+          type: string
+          example: 1TG6M3xrtyuuifrt
+    updateBatch:
+      type: object
+      required:
+        - batch
+      properties:
+        batch:
+          $ref: '#/components/schemas/updateBatchBody'
+    updateBatchBody:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: test1
+        payoffId:
+          type: string
+          example: 1TG6M3xrtyuuifrt
+        status:
+          type: string
+          example: submitted  
+    batchCustom:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        count:
+          type: string
+        payoff:
+          type: object
+          properties:
+            name:
+              type: string
+            type:
+              type: string
+            url:
+              type: string
+            public:
+              $ref: '#/components/schemas/public'
+            privateData:
+              $ref: '#/components/schemas/privateData'
+    public:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          example: 'http://www.mywebsite.com'
+    privateData:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/data'
+    data:
+      type: object
+      required:
+        - secureURL
+        - reportURL
+      properties:
+        secureURL:
+          type: string
+        reportURL:
+          type: string
+    listBatches:
+      type: object
+      properties:
+        totalCount:
+          type: integer
+          example: 1
+        batches:
+          type: array
+          items:
+            $ref: '#/components/schemas/batchResponse'
+    listBatch:
+      type: object
+      required:
+        - batch
+      properties:
+        batch:
+          $ref: '#/components/schemas/batchResponse'
+    batchResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: manjhusksksnsj
+        name:
+          type: string
+          example: test1
+        dateCreated:
+          type: string
+          example: '2014-06-05T11:42:23.000+0000'
+        count:
+          type: string
+          example: 10
+        triggerType:
+          type: string
+          example: watermark
+        payoffId:
+          type: string
+          example: 1TG6M3xrtyuuifrt
+        status:
+          type: string
+          example: pending
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/batchlink'
+          example:
+            - rel: self
+              href: 'https://www.livepaperapi.com/api/v3/batches/manjhusksksnsj'
+            - rel: payoff
+              href: 'https://www.livepaperapi.com/api/v3/payoffs/1TG6M3xrtyuuifrt'
+            - rel: project
+              href: >-
+                https://www.livepaperapi.com/api/v3/projects/GY8fjYH2RhS_TkzYYN1hNw
+            - rel: triggerIds
+              href: >-
+                https://storage.livepaperapi.com/api/v3/batches/manjhusksksnsj/triggers/download
+            - rel: triggerImages
+              href: >-
+                https://storage.livepaperapi.com/api/v3/batches/manjhusksksnsj/triggerimages/download
+            - rel: jobFile
+              href: >-
+                https://storage.livepaperapi.com/api/v3/batches/manjhusksksnsj/jobfile/download
+    batchlink:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        rel:
+          type: string
+        href:
+          type: string
+    triggerRequest:
+      type: object
+      required:
+        - trigger
+      properties:
+        trigger:
+          $ref: '#/components/schemas/trigger'
+    trigger:
+      type: object
+      required:
+        - name
+        - triggerType
+      properties:
+        name:
+          type: string
+          example: Trigger name
+        triggerType:
+          type: string
+          example: qrCode
+        payoffId:
+          type: string
+          example: emqL3g6tGalo4ko9c
+    triggerPutRequest:
+      type: object
+      required:
+        - trigger
+      properties:
+        trigger:
+          $ref: '#/components/schemas/triggerPut'
+    triggerPut:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Trigger name
+        payoffExperience:
+          type: string
+          example: 'on'
+    triggerList:
+      type: object
+      required:
+        - triggers
+      properties:
+        triggers:
+          $ref: '#/components/schemas/triggerObj'
+    triggerObj:
+      type: array
+      items:
+        $ref: '#/components/schemas/triggerResponse'
+    triggerResponse:
+      type: object
+      required:
+        - trigger
+      properties:
+        trigger:
+          $ref: '#/components/schemas/triggerRes'
+    triggerRes:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'http://d.hpar.co/bxbu67'
+        name:
+          type: string
+          example: Trigger name
+        triggerType:
+          type: string
+          example: qrCode
+        dateCreated:
+          type: string
+          example: '2014-10-08T20:40:26.401+0000'
+        dateModified:
+          type: string
+          example: '2014-10-08T20:40:26.401+0000'
+        projectId:
+          type: string
+          example: GY8fjYH2RhS_TkzYYN1hNw
+        payoffId:
+          type: string
+          example: emqL3g6tGalo4ko9c
+        payoffExperience:
+          type: string
+          example: on
+        renewalDate:
+          type: string
+          example: '2016-11-01T00:00:00.000+000'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/link'
+          example:
+            - rel: project
+              href: >-
+                https://www.livepaperapi.com/api/v3/projects/GY8fjYH2RhS_TkzYYN1hNw
+            - rel: self
+              href: >-
+                https://www.livepaperapi.com/api/v3/triggers?id=http://d.hpar.co/bxbu67
+
+    reassign:
+      type: object
+      properties:
+        items:
+           type: array
+           items:
+             $ref: '#/components/schemas/responseReassign'
+           example:
+           - triggerId : 2uor4t4mq9lb14cfnnx1ziyinvi83x5p
+             targetBatchId: nx1ziyinvi83x5p
+           - triggerId : 4t4mq9lb14cfnn2uorx1ziyinvi83x5p
+             targetBatchId: cfnnx1ziyinvi83x5p   
+    responseReassign:
+      type: object       
+      properties:
+        triggerId:
+           type: string
+        targetBatchId:
+           type: string         
+    link:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        rel:
+          type: string
+        href:
+          type: string
+    rulesresponse:
+      type: object
+      required:
+        - rules
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/rules'
+          example:
+            - type: allowed_countries
+              value: 'UK,IN'
+              effect: alert
+            - type: public_scan_exceeds_count
+              value: '5'
+              effect: warning
+            - type: public_scan_exceeds_count
+              value: '15'
+              effect: alert
+            - type: private_scan_exceeds_count
+              value: '5'
+              effect: warning
+            - type: private_scan_exceeds_count
+              value: '5'
+              effect: alert
+            - type: scan_when_inactive
+              effect: alert
+    accountlink:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        rel:
+          type: string
+          example: self
+        href:
+          type: string
+          example: >-
+            https://www.livepaperapi.com/api/v3/account/0000g07wgygmdsld9u8onuo55rpufy2o
+    projectlink:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        rel:
+          type: string
+          example: self
+        href:
+          type: string
+          example: 'https://www.livepaperapi.com/api/v3/project/zZLsnjy'
+    membershiplink:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        rel:
+          type: string
+          example: self
+        href:
+          type: string
+          example: >-
+            https://www.livepaperapi.com/api/v3/project/zZLsnjy/memberships/n8UjZy_nSei1ZirO4huljA
+    ruleslink:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        rel:
+          type: string
+          example: self
+        href:
+          type: string
+          example: >-
+            https://www.livepaperapi.com/api/v3/project/zZLsnjy/rules/s09_AqHhTaCx2-2AQE1W4Q
+    user:
+      type: object
+      required:
+        - emailId
+      properties:
+        emailId:
+          type: string
+          example: user@gmail.com
+    newuser:
+      type: object
+      required:
+        - name
+        - scope
+      properties:
+        name:
+          type: string
+          example: user@gmail.com
+        scope:
+          type: array
+          items:
+            type: string
+            example:
+              - default
+              - user_service
+    userResponse:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: First
+        lastName:
+          type: string
+          example: Last
+        email:
+          type: string
+          example: user@gmail.com
+        clientId:
+          type: string
+          example: 056vwtsy03zkexce9rjxwii65hmbb84p
+        clientSecret:
+          type: string
+          example: xa35tHWOUr7NFHfNEzse1Omk9fwefnor
+        dateCreated:
+          type: string
+          example: '2014-06-02T15:37:07.000+0530'
+        dateModified:
+          type: string
+          example: '2014-06-02T15:37:07.000+0530'
+        links:
+          items:
+            $ref: '#/components/schemas/ruleslink'
+          example:
+            - rel: self
+              href: >-
+                https://dev.livepaperapi.com/api/v3/users/056vwtsy03zkexce9rjxwii65hmbb84p
+            - rel: defaultAccount
+              href: >-
+                https://dev.livepaperapi.com/api/v3/accounts/056vwtsy03zkexce9rjxwii65hmbb84p
+    bizLocations:
+      type: object
+      properties:
+        type:
+          type: string
+        value:
+          type: string
+    properties:
+      type: object
+      properties:
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+    eventproperties:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+    deletedproperties:
+      type: object
+      properties:
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+        name:
+          type: string
+    property:
+      type: object
+      properties:
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/properties'
+          example:
+            - resourceType: project
+              resourceId: kxwdmi
+              name: color
+              value: Blue
+            - resourceType: project
+              resourceId: JK1wbd
+              name: color
+              value: Green
+    propertyresponse:
+      type: object
+      properties:
+        dateCreated:
+          type: string
+          example: '2014-04-08T08:16:25.723+0000'
+        dateModified:
+          type: string
+          example: '2014-04-08T08:16:25.723+0000'
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/properties'
+          example:
+            - resourceType: project
+              resourceId: kxwdmi
+              name: color
+              value: Blue
+            - resourceType: project
+              resourceId: JK1wbd
+              name: color
+              value: Green
+    projects:
+      type: object
+      required:
+        - projects
+      properties:
+        projects:
+          $ref: '#/components/schemas/project'
+    project:
+      type: array
+      items:
+        $ref: '#/components/schemas/projectObj'
+    projectResponse:
+      type: object
+      required:
+        - project
+      properties:
+        project:
+          $ref: '#/components/schemas/projectObj'
+    projectObj:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          example: jSKjxRarRGeRRlj_9hSL7A
+        name:
+          type: string
+          example: MyNewProject
+        description:
+          type: string
+          example: This is the description of linkcreationstudio
+        brand:
+          type: string
+          example: hp
+        accountId:
+          type: string
+          example: 056vwtsy03zkexce9rjxwii65hmbb84p
+        payoffId:
+          type: string
+          example: 056vwtsy03zkexce9rjxwii65hmbb84p
+        dateCreated:
+          type: string
+          example: '2014-04-08T08:16:25.723+0000'
+        dateModified:
+          type: string
+          example: '2014-04-08T08:16:25.723+0000'
+        createdBy:
+          type: string
+          example: abc@hp.com
+        validationInfo:
+          $ref: '#/components/schemas/validateproperties'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/projectlink'
+    newproject:
+      type: object
+      required:
+        - project
+      properties:
+        project:
+          $ref: '#/components/schemas/newprojectdef'
+    newprojectdef:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: newproject
+        brand:
+          type: string
+          example: hp
+        description:
+          type: string
+          example: This is the description of linkcreationstudio
+        payoffId:
+          type: string
+          example: 056vwtsy03zkexce9rjxwii65hmbb84p
+        validationInfo:
+          $ref: '#/components/schemas/validateproperties'
+    validateproperties:
+      type: object
+      properties:
+        productUrl:
+          type: string
+          example: 'https://mylinks.linkcreationstudio.com'
+        reportFraudUrl:
+          type: string
+          example: 'https://www.google.com'
+        anonymousUserSeesValidation:
+          type: boolean
+          example: false
+    projectpropertyresponse:
+      type: object
+      properties:
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/properties'
+          example:
+            - resourceType: project
+              resourceId: kxwdmi
+              name: fruit
+              value: banana
+            - resourceType: project
+              resourceId: kxwdmi
+              name: color
+              value: Yellow
+    batchPropertyresponse:
+      type: object
+      properties:
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/properties'
+          example:
+            - resourceType: batch
+              resourceId: kxwdmi
+              name: color
+              value: Blue
+            - resourceType: batch
+              resourceId: kxwdmi
+              name: family
+              value: fruits
+    triggerPropertyresponse:
+      type: object
+      properties:
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/properties'
+          example:
+            - resourceType: trigger
+              resourceId: JK1wbd
+              name: Family
+              value: Fruit
+            - resourceType: trigger
+              resourceId: JK1wbd
+              name: fruit
+              value: Banana
+            - resourceType: trigger
+              resourceId: JK1wbd
+              name: color
+              value: Yellow
+    propertiesobject:
+      type: object
+      properties:
+        Properties:
+          $ref: '#/components/schemas/propertiesmap'
+    propertiesmap:
+      type: object
+      description: 'a (key, MapItem) map. `default`is an example key'
+      additionalProperties:
+        $ref: '#/components/schemas/MapItem'
+    MapItem:
+      type: string
+      example: value
+    accountsobject:
+      type: object
+      properties:
+        account:
+          $ref: '#/components/schemas/account'
+    account:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: Test Client
+        id:
+          type: string
+          example: testClientID
+        ownerId:
+          type: string
+          example: testClientID
+        description:
+          type: string
+          example: null
+        dateCreated:
+          type: string
+          example: '2013-06-10 12:40:18.000+000'
+        dateModified:
+          type: string
+          example: '2013-06-10 12:40:18.000+000'
+        customerKey:
+          type: string
+          example: 4e4f39b
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/accountlink'
+    quotaRes:
+      type: array
+      items:
+       $ref: '#/components/schemas/quotas'
+      example:
+          - type: secureMark
+            limit: 100
+            used: 69
+            markTypes:
+              - markType: secureQrCode
+                used: 23
+              - markType: secureQrCodeGuilloche
+                used: 46
+          - type: qrcode
+            limit: 100
+            used: 56
+            markTypes:
+              - markType: qrcode
+                used: 20
+              - markType: qrCodeGuilloche
+                used: 36
+          - type: sgtin-watermark
+            limit: 100
+            used: 45
+            markTypes: 
+              - markType: sgtin-watermark
+                used: 45
+          - type: shorturl
+            limit: 100
+            used: 72
+            markTypes: 
+              - markType: shorturl
+                used: 72
+          - type: watermark
+            limit: 100
+            used: 48
+            markTypes: 
+              - markType: watermark
+                used: 48
+    quotas:
+      type: object
+      properties:
+        type:
+          type: string
+        limit:
+          type: string
+        used:
+          type: string
+        markTypes:
+          type: object
+          properties:
+            markType:
+             type: string
+            used:
+             type: string
+    quota:
+      type: object
+      properties:
+        quotas:
+          $ref: '#/components/schemas/quotaRes'
+    accessToken:
+      type: object
+      required:
+        - accessToken
+      properties:
+        accessToken:
+          type: string
+          example: YWxzMGdv6T...5MXBpQVZNTVE9
+        scope:
+          type: string
+          example: default
+    accessTokenValidateRes:
+      type: object
+      required:
+        - clientId
+      properties:
+        createdDate:
+          type: string
+          example: 1497944996038
+        endDate:
+          type: string
+          example: 1497948596038
+        clientId:
+          type: string
+          example: testClientID
+        scope:
+          type: string
+          example: default
+    param:
+      type: string
+      example: grant_type=client_credentials&scope=default
+    errorModel:
+      type: object
+      required:
+        - httpCode
+        - errorCode
+      properties:
+        requestId:
+          type: string
+          example: a554d520-2584-4e2b-b5e9-329ef79d0978
+        httpCode:
+          type: integer
+          format: int32
+        errorDescription:
+          type: string
+          example: <dynamic error>
+        errorCode:
+          type: string
+          example: <dynamic error code>
+    
+    deletepayoffResponse:
+      type: object
+      required:
+        - deletedLinks
+        - link
+      properties:
+        deletedLinks:
+          type: string
+          example: "2"
+        links:
+          type: array
+          $ref: '#/components/schemas/projectlink'
+          
+    listpayoffResponse:
+      type: object
+      required:
+        - offset
+        - itemsRetrieved
+        - totalCount
+        - payoffs
+      properties:
+        offset:
+          type: string
+          example: 1
+        itemsRetrieved:
+          type: string
+          example: 2
+        totalCount:
+          type: string
+          example: 10
+        payoffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/newpayoffdef'
+    newpayoff:
+      type: object
+      required:
+        - payoff
+      properties:
+        payoff:
+          $ref: '#/components/schemas/newpayoffdef'
+    newpayoffdef:
+      type: object
+      required:
+        - name
+        - type
+        - url
+        - version
+        - richPayoff
+        - public
+        - privateData
+      properties:
+        name:
+          type: string
+          example: My New Payoff
+        type:
+          type: string
+          example: url
+        version:
+          type: string
+          example: 2.0
+        url:
+          type: string
+          example: 'https://www.linkcreationstudio.com'
+        
+       
+ 
+    payoffResponse:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          example: jSKjxRarRGeRRlj_9hSL7A
+        name:
+          type: string
+          example: My New Payoff
+        type:
+          type: string
+          example: url
+        url:
+          type: string
+          example: ''
+        accountId:
+          type: string
+          example: 056vwtsy03zkexce9rjxwii65hmbb84p
+        payoffId:
+          type: string
+          example: 056vwtsy03zkexce9rjxwii65hmbb84p
+        dateCreated:
+          type: string
+          example: '2014-04-08T08:16:25.723+0000'
+        dateModified:
+          type: string
+          example: '2014-04-08T08:16:25.723+0000'
+        createdBy:
+          $ref: '#/components/schemas/user'
+        validationInfo:
+          $ref: '#/components/schemas/validateproperties'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/projectlink'
+    
+  parameters:
+    authorizationParam:
+      name: Authorization
+      in: header
+      description: 'Authorization header in the format ***Bearer [access_token]***'
+      required: true
+      schema:
+        type: string
+        format: string
+    contentParam:
+      name: Content-Type
+      in: header
+      description: application/json
+      required: true
+      schema:
+        type: string
+        format: string
+    acceptTypeJson:
+      name: Accept
+      in: header
+      description: application/json
+      required: true
+      schema:
+        type: string
+        format: string
+    projectParam:
+      name: projectId
+      in: query
+      description: Project ID
+      required: true
+      schema:
+        type: string
+    projectOptinalParam:
+      name: projectId
+      in: query
+      description: Project ID
+      required: false
+      schema:
+        type: string
+    projectIdOptinalParam:
+      name: projectId
+      in: query
+      description: >-
+        Project Id. if passed  lists all memberships for the this project(All
+        the users who have access to this project) otherwise lists   all
+        memberships of user.(All the projects user have access)
+      required: false
+      schema:
+        type: string
+  requestBodies:
+    newproject:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/newproject'
+      description: |
+        Create project request.</br></br> 
+        <table>
+          <tr>
+            <th><b>Parameter Name</b></th>
+             <th><b>Description</b></th>
+          </tr>
+           <tr>
+            <td>name*</td>
+             <td>mandatory, project name  </td>
+          </tr>
+          <tr>
+            <td>brand</td>
+             <td>optional, brand name of the product that is represented by this Project. A  Project represents a product line for a Track & Trace business case.  </td>
+          </tr>
+          <tr>
+            <td>description</td>
+             <td>optional, project description. </td>
+          </tr>
+          <tr>
+            <td>productUrl*</td>
+             <td>optional, A anonymous user scanning the trigger with a Link Reader Application will be redirected to this URL. </td>
+          </tr>
+          <tr>
+            <td>anonymousUserSeesValidation</td>
+             <td>Set this flag to true if
+        anonymous user is allowed to see the validation</td>
+          </tr>
+          <tr>
+            <td>payoffId</td>
+             <td>optional. if provided will define the resolve experience for the triggers in this Project. See Payoff Specification for more details.</td>
+          </tr>
+        </table>
+        
+      required: true
+    property:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/property'
+      description: property  payload in
+      required: true
+  securitySchemes:
+    Bearer:
+      description: >-
+        To access the Link API, a valid LPP access token must be passed in all
+        the queries in the 'Authorization' header.
+
+        To obtain an access token, you need to make a request to the LPP service
+        with your account credentials.
+
+        Please visit 
+        'https://mylinks.linkcreationstudio.com/developer/doc/v3/auth/' for more
+        information on how to obtain the access token.
+
+        Make the value of the 'Authorization' header equal to 'Bearer
+        ACCESS_TOKEN', where ACCESS_TOKEN is your access token.
+      type: apiKey
+      name: Authorization
+      in: header
